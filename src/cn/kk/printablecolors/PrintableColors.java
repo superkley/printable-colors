@@ -64,12 +64,13 @@ public final class PrintableColors {
                 int dB = c.getBlue() - color.getBlue();
                 int dG = c.getGreen() - color.getGreen();
 
-                double diff = Math.sqrt(dR * dR + dG * dG + dB * dB);
+                // weighted difference
+                double diff = Math.sqrt(dR * dR * 0.241 + dG * dG * 0.691 + dB * dB * 0.068);
                 if (diff < min) {
                     min = diff;
                     result = c;
                 }
-                if (min < 0.001) {
+                if (min < 1d) {
                     break;
                 }
             }
