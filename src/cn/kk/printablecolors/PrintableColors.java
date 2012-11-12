@@ -27,66 +27,98 @@ import java.util.List;
  * Helper class to find printable colors.
  */
 public final class PrintableColors {
-  private static final List<Color> PRESETS;
-  static {
-    PRESETS = new ArrayList<Color>();
-    try {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(PrintableColors.class.getResourceAsStream("/presets.res"), Charset.forName("UTF-8")));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        Color c = PrintableColors.readColor(line);
-        if (c != null) {
-          PrintableColors.PRESETS.add(c);
+    private static final float DARKER_CONSTANT = 0.3f;
+    private static final List<Color> PRESETS;
+    static {
+        PRESETS = new ArrayList<Color>();
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    PrintableColors.class.getResourceAsStream("/presets.res"), Charset.forName("UTF-8")));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Color c = PrintableColors.readColor(line);
+                if (c != null) {
+                    PrintableColors.PRESETS.add(c);
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            System.out.println("Unable to find the 'presets.res' file in the classpath!");
+            e.printStackTrace();
         }
-      }
-      reader.close();
-    } catch (Exception e) {
-      System.out.println("Unable to find the 'presets.res' file in the classpath!");
-      e.printStackTrace();
     }
-  }
 
-  public static Color findPrintableColor(Color color) {
-    final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
-    final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
+    public static Color findBeautifulColor(Color color) {
+        final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
 
-    // System.out.println("rgb: " + Arrays.toString(rgb));
-    // System.out.println("hsb: " + Arrays.toString(hsb));
-    if ((rgb[0] == rgb[1]) && (rgb[1] == rgb[2])) {
-      return Color.getHSBColor(hsb[0], hsb[1], hsb[2] * 0.7f);
-    } else {
-      double min = Integer.MAX_VALUE;
-      Color result = color;
-      for (Color c : PrintableColors.PRESETS) {
-        int dR = c.getRed() - color.getRed();
-        int dB = c.getBlue() - color.getBlue();
-        int dG = c.getGreen() - color.getGreen();
+        // System.out.println("rgb: " + Arrays.toString(rgb));
+        // System.out.println("hsb: " + Arrays.toString(hsb));
+        if ((rgb[0] == rgb[1]) && (rgb[1] == rgb[2])) {
+            final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
+            return Color.getHSBColor(hsb[0], hsb[1], hsb[2] * (1 - DARKER_CONSTANT));
+        } else {
+            double min = Integer.MAX_VALUE;
+            Color result = color;
+            for (Color c : PrintableColors.PRESETS) {
+                int dR = c.getRed() - color.getRed();
+                int dB = c.getBlue() - color.getBlue();
+                int dG = c.getGreen() - color.getGreen();
 
-        // weighted difference
-        double diff = Math.sqrt((dR * dR * 0.241) + (dG * dG * 0.691) + (dB * dB * 0.068));
-        if (diff < min) {
-          min = diff;
-          result = c;
+                // weighted difference
+                double diff = Math.sqrt(dR * dR + dG * dG + dB * dB);
+                if (diff < min) {
+                    min = diff;
+                    result = c;
+                }
+                if (min < 1d) {
+                    break;
+                }
+            }
+            // System.out.println("from presets: " + result + ", min: " + min);
+            return result;
         }
-        if (min < 1d) {
-          break;
-        }
-      }
-      // System.out.println("from presets: " + result + ", min: " + min);
-      return result;
     }
-  }
 
-  private static Color readColor(String line) {
-    String str;
-    if (line.length() > 6) {
-      str = line.trim();
-    } else {
-      str = line;
+    public static Color findPrintableColor(Color color) {
+        final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
+
+        if (rgb[0] == rgb[1] && rgb[1] == rgb[2]) {
+            final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
+            return Color.getHSBColor(hsb[0], hsb[1], hsb[2] * (1f - DARKER_CONSTANT));
+        } else {
+            double min = Integer.MAX_VALUE;
+            Color result = color;
+            for (Color c : PRESETS) {
+                int dR = c.getRed() - color.getRed();
+                int dB = c.getBlue() - color.getBlue();
+                int dG = c.getGreen() - color.getGreen();
+
+                // weighted difference
+                double diff = Math.sqrt(dR * dR + dG * dG + dB * dB);
+                if (diff < min) {
+                    min = diff;
+                    result = c;
+                }
+                if (min < 1d) {
+                    break;
+                }
+            }
+            final float[] hsb = Color.RGBtoHSB(result.getRed(), result.getGreen(), result.getBlue(), new float[3]);
+            return Color.getHSBColor(hsb[0], hsb[1], Math.max(0f, hsb[2] - DARKER_CONSTANT));
+        }
     }
-    if (str.length() != 6) {
-      return null;
+
+    private static Color readColor(String line) {
+        String str;
+        if (line.length() > 6) {
+            str = line.trim();
+        } else {
+            str = line;
+        }
+        if (str.length() != 6) {
+            return null;
+        }
+        return new Color(Integer.parseInt(str.substring(0, 2), 16), Integer.parseInt(str.substring(2, 4), 16),
+                Integer.parseInt(str.substring(4, 6), 16));
     }
-    return new Color(Integer.parseInt(str.substring(0, 2), 16), Integer.parseInt(str.substring(2, 4), 16), Integer.parseInt(str.substring(4, 6), 16));
-  }
 }
