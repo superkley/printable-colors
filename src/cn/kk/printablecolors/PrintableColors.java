@@ -27,7 +27,8 @@ import java.util.List;
  * Helper class to find printable colors.
  */
 public final class PrintableColors {
-    private static final float DARKER_CONSTANT = 0.3f;
+    // grey, red, orange, yellow, ...
+    private static final float[] DARKER_CONSTANTS = { 0.2f, 0f, 0.05f, 0.1f, 0.2f, 0.1f, 0.05f, 0f, 0f };
     private static final List<Color> PRESETS;
     static {
         PRESETS = new ArrayList<Color>();
@@ -48,6 +49,18 @@ public final class PrintableColors {
         }
     }
 
+    private static float darker(float brightness, float hue) {
+        return Math.max(0f, brightness - getDarkerConstant(hue));
+    }
+
+    private static float darker(float brightness, float hue, boolean grey) {
+        if (grey) {
+            return Math.max(0f, brightness - DARKER_CONSTANTS[0]);
+        } else {
+            return darker(brightness, hue);
+        }
+    }
+
     public static Color findBeautifulColor(Color color) {
         final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
 
@@ -55,7 +68,7 @@ public final class PrintableColors {
         // System.out.println("hsb: " + Arrays.toString(hsb));
         if ((rgb[0] == rgb[1]) && (rgb[1] == rgb[2])) {
             final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], hsb[2] * (1 - DARKER_CONSTANT));
+            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0], true));
         } else {
             double min = Integer.MAX_VALUE;
             Color result = color;
@@ -84,7 +97,7 @@ public final class PrintableColors {
 
         if (rgb[0] == rgb[1] && rgb[1] == rgb[2]) {
             final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], hsb[2] * (1f - DARKER_CONSTANT));
+            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0], true));
         } else {
             double min = Integer.MAX_VALUE;
             Color result = color;
@@ -104,8 +117,13 @@ public final class PrintableColors {
                 }
             }
             final float[] hsb = Color.RGBtoHSB(result.getRed(), result.getGreen(), result.getBlue(), new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], Math.max(0f, hsb[2] - DARKER_CONSTANT));
+            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0]));
         }
+    }
+
+    private static float getDarkerConstant(float hue) {
+        final int idx = (int) (hue * 8 + 1);
+        return DARKER_CONSTANTS[idx];
     }
 
     private static Color readColor(String line) {
