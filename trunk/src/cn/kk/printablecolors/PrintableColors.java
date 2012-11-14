@@ -28,7 +28,7 @@ import java.util.List;
  */
 public final class PrintableColors {
     // grey, red, orange, yellow, ...
-    private static final float[] DARKER_CONSTANTS = { 0.2f, 0f, 0.05f, 0.1f, 0.2f, 0.1f, 0.05f, 0f, 0f };
+    private static final float[] DARKER_CONSTANTS = { 0.4f, 0.15f, 0.20f, 0.25f, 0.30f, 0.25f, 0.20f, 0.15f, 0.15f };
     private static final List<Color> PRESETS;
     static {
         PRESETS = new ArrayList<Color>();
@@ -49,18 +49,6 @@ public final class PrintableColors {
         }
     }
 
-    private static float darker(float brightness, float hue) {
-        return Math.max(0f, brightness - getDarkerConstant(hue));
-    }
-
-    private static float darker(float brightness, float hue, boolean grey) {
-        if (grey) {
-            return Math.max(0f, brightness - DARKER_CONSTANTS[0]);
-        } else {
-            return darker(brightness, hue);
-        }
-    }
-
     public static Color findBeautifulColor(Color color) {
         final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
 
@@ -68,7 +56,8 @@ public final class PrintableColors {
         // System.out.println("hsb: " + Arrays.toString(hsb));
         if ((rgb[0] == rgb[1]) && (rgb[1] == rgb[2])) {
             final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0], true));
+            final float[] d = darker(hsb, true);
+            return Color.getHSBColor(d[0], d[1], d[2]);
         } else {
             double min = Integer.MAX_VALUE;
             Color result = color;
@@ -92,32 +81,28 @@ public final class PrintableColors {
         }
     }
 
+    private static float[] darker(float[] hsb) {
+        return darker(hsb, false);
+    }
+
+    private static float[] darker(float[] hsb, boolean grey) {
+        if (grey) {
+            return new float[] { hsb[0], hsb[1], Math.max(0f, hsb[2] - DARKER_CONSTANTS[0]) };
+        } else {
+            return new float[] { hsb[0], Math.min(1f, hsb[1] + getDarkerConstant(hsb[0])),
+                    Math.max(0f, hsb[2] - getDarkerConstant(hsb[0])) };
+        }
+    }
+
     public static Color findPrintableColor(Color color) {
         final int[] rgb = { color.getRed(), color.getGreen(), color.getBlue() };
-
+        final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
         if (rgb[0] == rgb[1] && rgb[1] == rgb[2]) {
-            final float[] hsb = Color.RGBtoHSB(rgb[0], rgb[1], rgb[2], new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0], true));
+            final float[] d = darker(hsb, true);
+            return Color.getHSBColor(d[0], d[1], d[2]);
         } else {
-            double min = Integer.MAX_VALUE;
-            Color result = color;
-            for (Color c : PRESETS) {
-                int dR = c.getRed() - color.getRed();
-                int dB = c.getBlue() - color.getBlue();
-                int dG = c.getGreen() - color.getGreen();
-
-                // weighted difference
-                double diff = Math.sqrt(dR * dR + dG * dG + dB * dB);
-                if (diff < min) {
-                    min = diff;
-                    result = c;
-                }
-                if (min < 1d) {
-                    break;
-                }
-            }
-            final float[] hsb = Color.RGBtoHSB(result.getRed(), result.getGreen(), result.getBlue(), new float[3]);
-            return Color.getHSBColor(hsb[0], hsb[1], darker(hsb[2], hsb[0]));
+            final float[] d = darker(hsb);
+            return Color.getHSBColor(d[0], d[1], d[2]);
         }
     }
 
